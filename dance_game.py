@@ -141,13 +141,14 @@ class MouseMover():
     @staticmethod
     def press_snack(snack_index: int, resolution: str, mouse_delay: float = 0.15) -> None:
         """Clicks on the snack given the snack number given (1-5)."""
-        x_coords, y = None, None
+        x, y = None, None
         if resolution == '800x600':
-            pass
+            y = 480
+            x = [170,285,405,515,630]
         elif resolution == '1280x800':
-            y = 540
-            x_coords = [350, 495, 655, 790, 940]
-        MouseMover.move_and_click(x_coords[snack_index], y, mouse_delay)
+            y = 580
+            x = [350, 495, 655, 790, 940]
+        MouseMover.move_and_click(x[snack_index], y, mouse_delay)
 
 
 class KeyboardPresser():

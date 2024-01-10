@@ -1,11 +1,16 @@
+import atexit
+import inspect
 import logging
 import os
+import sys
 import time
 import threading
 from typing import List
+
 import pyautogui
 import pygetwindow as pgw
 from pynput import keyboard
+
 import logger
 import dance_game as DG
 from shared import Globals
@@ -35,7 +40,7 @@ def finish_game(MM: DG.MouseMover, resolution: str) -> None:
     # stats improvement screen, just click next
     MM.press_right_side_button(resolution)
     snack_index = MM.choose_snack()
-    #snack_index = [1]
+    snack_index = [5]
 
     # either feed snack, or finish
     if snack_index == -1:
@@ -43,7 +48,6 @@ def finish_game(MM: DG.MouseMover, resolution: str) -> None:
     else:
         MM.press_snack(snack_index, resolution)
         MM.press_right_side_button(resolution)
-        MM.press_left_side_button(resolution)
 
 
 def play_game() -> None:
@@ -160,7 +164,7 @@ def main() -> None:
             if play.finished:
                 logging.info('play was finished, running post game movement')
                 finish_game(MM, resolution)
-                time.sleep(3.5)  # give time for animation
+                time.sleep(3)  # give time for animation
             else:
                 logging.critical("Uncaught break - play.finished returned False.")
                 break
