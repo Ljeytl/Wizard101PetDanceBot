@@ -10,6 +10,8 @@ Although it is against the ToS to be botting and using a third-party software, s
 
 Download and extract the latest executable bundle in the releases [here](https://github.com/Ljeytl/Wizard101PetDanceBot/releases). When unzipping the file, I recommend you chose the `extract to petdance/` option or your current folder will be filled with files. Do not move anything, including the executable, outside the folder. However, you may create a shortcut of the executable.
 
+** If this doesn't work, you can run the code through a python ide, like pycharm, and it should run fine. **
+
 ## Instructions
 
 **Note: this has not been tested on the Steam version yet.**
