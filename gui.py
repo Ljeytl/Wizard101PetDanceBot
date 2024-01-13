@@ -49,7 +49,7 @@ class MessageBox():
     @self_destruct
     def show_warning(self) -> None:
         logging.warning(self.title, stacklevel=4)
-        messagebox.showwarning(title=self.tilte, message=self.message)
+        messagebox.showwarning(title=self.title, message=self.message)
 
     @self_destruct
     def show_info(self) -> None:

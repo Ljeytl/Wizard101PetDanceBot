@@ -96,7 +96,6 @@ def setup(resolution: str) -> int:
         MessageBox(title='Game Not Found',
                    message='Could not find Wizard101 client running on your computer.').show_error()
         return 2
-
     return 0
 
 
