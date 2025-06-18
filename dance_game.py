@@ -1,12 +1,13 @@
 import logging
 import random
 import time
+import os # Moved import os to top
 from typing import List, Tuple
 
 from shared import Globals
 
 import pyautogui
-from image import *
+from image import Arrow, load_textures, generate_subicons, remove_duplicate_subicons, get_screenshot, locate, locate_and_get_center
 
 
 turn = 0
@@ -75,6 +76,13 @@ def input_moves(input_arrows: List[Arrow]) -> None:
 
 
 class MouseMover():
+    # This class handles mouse movements and clicks.
+    # Many actions now use image recognition to find elements on screen.
+    # If image recognition fails (e.g., buttons not found), you might need to:
+    #   - Ensure the game's visual appearance matches the images in the 'assets' folder.
+    #   - Adjust 'confidence' values in locate_and_get_center or pyautogui.locate... calls.
+    #     Lower confidence (e.g., 0.7) is less strict but can cause errors.
+    #     Higher confidence (e.g., 0.95) is stricter. Default is often 0.8 or 0.9.
     """No need to do error checking since the user will not have access to this class."""
 
     def __init__(self, locations: List[int], snacks: List[int], resolution: str) -> None:
@@ -89,12 +97,80 @@ class MouseMover():
         available_locations = [
             0] if available_locations == [] else available_locations
         location_choice = random.choice(available_locations)
-        x, y = MouseMover.get_location_pixels(self.resolution)[location_choice]
-        MouseMover.move_and_click(x, y, self.mouse_delay)
+
+        location_images = ["WizardCity.png", "Kroktopia.png", "marleybone.png", "mooshu.png", "dragonspyre.png"]
+        image_to_find = location_images[location_choice]
+        image_path = f"assets/{image_to_find}"
+
+        coords = locate_and_get_center(image_path, confidence=0.8)
+
+        if coords:
+            MouseMover.move_and_click(coords[0], coords[1], self.mouse_delay)
+        else:
+            logging.error(f"Location image {image_to_find} not found. Falling back to coordinate-based click.")
+            x, y = MouseMover.get_location_pixels(self.resolution)[location_choice]
+            MouseMover.move_and_click(x, y, self.mouse_delay)
 
     def choose_snack(self) -> int:
-        available_snacks = [i for i, snack in enumerate(self.snacks) if snack]
-        return random.choice(available_snacks) if available_snacks else -1
+        # USER ACTION REQUIRED: Configure your preferred snacks here.
+        # 1. Create PNG images of your preferred snacks.
+        # 2. Place these images in the 'assets/snacks/' directory.
+        # 3. Update the list below with the filenames of your snack images.
+        #    The order determines priority (first image in the list is checked first).
+        # Example: preferred_snack_image_files = ["my_favorite_snack.png", "another_good_one.png"]
+        #
+        # Placeholder for preferred snack images - user needs to create these in assets/snacks/
+        # Example: "assets/snacks/mega_snack_example.png"
+        logging.info("Note: Preferred snack image filenames are placeholders (e.g., 'mega_snack_example.png'). "
+                     "Actual images need to be created by the user in the 'assets/snacks/' directory.")
+        preferred_snack_image_files = ["mega_snack_example.png", "super_snack_example.png"]
+
+        slot_template_image = "assets/feedpet_snackunselected.png"
+        try:
+            actual_slot_regions = list(pyautogui.locateAllOnScreen(slot_template_image, confidence=0.8))
+        except pyautogui.ImageNotFoundException:
+            actual_slot_regions = []
+
+        if not actual_slot_regions:
+            logging.warning("Could not locate snack slots visually using template. Falling back to random snack choice.")
+            available_slots = [i for i, use_slot in enumerate(self.snacks) if use_slot]
+            return random.choice(available_slots) if available_slots else -1
+
+        actual_slot_regions.sort(key=lambda region: region.left)
+        # Store a list of (index, region) for easier lookup
+        indexed_slot_regions = list(enumerate(actual_slot_regions))
+
+        for image_file in preferred_snack_image_files:
+            preferred_image_path = f"assets/snacks/{image_file}"
+            # Check if the preferred snack image even exists to avoid pyautogui error spam
+            if not os.path.exists(preferred_image_path):
+                logging.debug(f"Preferred snack image {preferred_image_path} not found. Skipping.")
+                continue
+
+            try:
+                found_preferred_snacks = list(pyautogui.locateAllOnScreen(preferred_image_path, confidence=0.8))
+            except pyautogui.ImageNotFoundException:
+                found_preferred_snacks = []
+
+            for pref_snack_region in found_preferred_snacks:
+                pref_snack_center_x = pref_snack_region.left + pref_snack_region.width / 2
+                pref_snack_center_y = pref_snack_region.top + pref_snack_region.height / 2
+
+                for slot_index, slot_region in indexed_slot_regions:
+                    # Check if the center of the preferred snack is within the bounds of the current slot region
+                    if (slot_region.left <= pref_snack_center_x <= slot_region.left + slot_region.width and
+                            slot_region.top <= pref_snack_center_y <= slot_region.top + slot_region.height):
+                        # Check if this slot_index is enabled by the user and is valid
+                        if slot_index < len(self.snacks) and self.snacks[slot_index]:
+                            logging.info(f"Preferred snack {image_file} found in available slot {slot_index}.")
+                            return slot_index
+                        else:
+                            logging.debug(f"Preferred snack {image_file} found in slot {slot_index}, but this slot is not enabled by the user.")
+                        break # Found the slot for this preferred snack instance, move to next preferred snack image or instance
+
+        logging.info("No user-enabled preferred snacks found. Falling back to random snack choice from available slots.")
+        available_slots = [i for i, use_slot in enumerate(self.snacks) if use_slot]
+        return random.choice(available_slots) if available_slots else -1
 
     @staticmethod
     def move_and_click(x: int, y: int, mouse_delay: float = 0.15) -> None:
@@ -120,35 +196,97 @@ class MouseMover():
         """Presses PLAY in select level screen,
         NEXT after game finishes,
         and FEED PET in feed screen."""
+        image_names = ["Play_lvlselected.png", "next.png", "startgame.png", "feedpet_snackselected.png"]
+        for image_name in image_names:
+            image_path = f"assets/{image_name}"
+            coords = locate_and_get_center(image_path, confidence=0.8)
+            if coords:
+                MouseMover.move_and_click(coords[0], coords[1], mouse_delay)
+                return
+
+        logging.error("Right side button not found via image recognition. Falling back to coordinate-based click.")
         x, y = None, None
         if resolution == '800x600':
             x, y = 630, 590
         elif resolution == '1280x800':
             x, y = 940, 770
-        MouseMover.move_and_click(x, y, mouse_delay)
+        if x is not None and y is not None:
+            MouseMover.move_and_click(x, y, mouse_delay)
+        else:
+            logging.error(f"Invalid resolution ({resolution}) for fallback coordinate-based click in press_right_side_button.")
 
     @staticmethod
     def press_left_side_button(resolution: str, mouse_delay: float = 0.15) -> None:
         """Presses CANCEL in select level screen,
         FINISH in both feed screen and post fees screen."""
+        image_names = ["cancel.png", "finish.png"]
+        for image_name in image_names:
+            image_path = f"assets/{image_name}"
+            coords = locate_and_get_center(image_path, confidence=0.8)
+            if coords:
+                MouseMover.move_and_click(coords[0], coords[1], mouse_delay)
+                return
+
+        logging.error("Left side button not found via image recognition. Falling back to coordinate-based click.")
         x, y = None, None
         if resolution == '800x600':
             x, y = 185, 590
         elif resolution == '1280x800':
             x, y = 355, 770
-        MouseMover.move_and_click(x, y, mouse_delay)
+        if x is not None and y is not None:
+            MouseMover.move_and_click(x, y, mouse_delay)
+        else:
+            logging.error(f"Invalid resolution ({resolution}) for fallback coordinate-based click in press_left_side_button.")
 
-    @staticmethod
-    def press_snack(snack_index: int, resolution: str, mouse_delay: float = 0.15) -> None:
-        """Clicks on the snack given the snack number given (1-5)."""
-        x, y = None, None
-        if resolution == '800x600':
-            y = 480
-            x = [170,285,405,515,630]
-        elif resolution == '1280x800':
-            y = 580
-            x = [350, 495, 655, 790, 940]
-        MouseMover.move_and_click(x[snack_index], y, mouse_delay)
+    def press_snack(self, snack_index: int, mouse_delay: float = 0.15) -> None:
+        """Clicks on the snack given the snack number (0-4)."""
+        # Ensure snack_index is valid (0-4)
+        if not 0 <= snack_index < 5:
+            logging.error(f"Invalid snack_index: {snack_index}. Must be between 0 and 4.")
+            return
+
+        slot_image_path = "assets/feedpet_snackunselected.png"
+        try:
+            # Ensure pyautogui is available, it should be imported at the top of the file.
+            found_slots = list(pyautogui.locateAllOnScreen(slot_image_path, confidence=0.8))
+        except pyautogui.ImageNotFoundException:
+            found_slots = []
+        except Exception as e: # Catch other potential pyautogui errors
+            logging.error(f"Error during pyautogui.locateAllOnScreen for snacks: {e}")
+            found_slots = []
+
+        if len(found_slots) <= snack_index:
+            logging.warning(f"Not enough snack slots found via image recognition for index {snack_index}. Found {len(found_slots)}. Falling back to coordinate-based click.")
+            x_coords, y_coord = None, None
+            if self.resolution == '800x600':
+                y_coord = 480
+                x_coords = [170, 285, 405, 515, 630]
+            elif self.resolution == '1280x800':
+                y_coord = 580
+                x_coords = [350, 495, 655, 790, 940]
+            else:
+                logging.error(f"Unknown resolution {self.resolution} for fallback snack click.")
+                return
+
+            if x_coords is None or y_coord is None or snack_index >= len(x_coords):
+                logging.error(f"Invalid snack_index {snack_index} or resolution for coordinate fallback.")
+                return
+
+            target_x = x_coords[snack_index]
+            # Use self.mouse_delay as it's an instance method now
+            MouseMover.move_and_click(target_x, y_coord, self.mouse_delay if mouse_delay == 0.15 else mouse_delay)
+            return
+
+        # If enough slots are found by image recognition
+        # Sort found_slots by their x-coordinate to ensure they are in left-to-right order
+        sorted_slots = sorted(found_slots, key=lambda slot: slot.left)
+
+        target_slot_box = sorted_slots[snack_index]
+
+        center_x = target_slot_box.left + target_slot_box.width / 2
+        center_y = target_slot_box.top + target_slot_box.height / 2
+        # Use self.mouse_delay
+        MouseMover.move_and_click(center_x, center_y, self.mouse_delay if mouse_delay == 0.15 else mouse_delay)
 
 
 class KeyboardPresser():

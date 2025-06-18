@@ -41,7 +41,7 @@ def finish_game(MM: DG.MouseMover, resolution: str) -> None:
     if snack_index == -1:
         MM.press_left_side_button(resolution)
     else:
-        MM.press_snack(snack_index, resolution)
+        MM.press_snack(snack_index) # resolution is no longer needed as it's self.resolution
         MM.press_right_side_button(resolution)
         MM.press_left_side_button(resolution)
 

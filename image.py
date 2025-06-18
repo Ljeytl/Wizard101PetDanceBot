@@ -75,4 +75,20 @@ def get_screenshot() -> Image:
 
 
 def locate(sub_image, base_image, confidence=0.95):
-    return pyautogui.locate(sub_image, base_image, confidence=confidence)
+    return pyautogui.locateOnScreen(sub_image, confidence=confidence)
+
+
+def locate_and_get_center(image_path: str, confidence: float = 0.9):
+    """Locates an image on the screen and returns its center coordinates.
+
+    Args:
+        image_path: Path to the image file.
+        confidence: Confidence level for image recognition.
+
+    Returns:
+        A tuple (x, y) of the center coordinates if found, otherwise None.
+    """
+    try:
+        return pyautogui.locateCenterOnScreen(image_path, confidence=confidence)
+    except pyautogui.ImageNotFoundException:
+        return None
