@@ -6,11 +6,8 @@ class Globals:
     q_pressed = False
     game_finished = False
     save_settings = False
-    resolutions = {
-        '800x600': (370, 525, 75, 75),
-        '1280x800': (600, 699, 95, 95)
-    }
-    settings = { key: None for key in ['locations', 'snacks', 'num_games', 'resolution'] }
+    resolutions = {}
+    settings = { key: None for key in ['locations', 'snacks', 'num_games'] }
 
 
 def separate(string: str, delimiter="=") -> List[str]:
@@ -33,12 +30,11 @@ def validate_save_settings() -> bool:
     idx_name_converter = {
         0: 'locations',
         1: 'snacks',
-        2: 'num_games',
-        3: 'resolution'
+        2: 'num_games'
     }
     with open('configure.txt', 'r', encoding='utf-8') as fp:
         lines = fp.readlines()
-    if len(lines) != 4:
+    if len(lines) != 3:
         return False
     for idx, line in enumerate(lines):
         line = line.strip()
@@ -58,14 +54,13 @@ def validate_save_settings() -> bool:
                 Globals.settings[idx_name_converter[idx]] = int(line)
             except Exception:
                 return False
-        else:
-            # check resolution - final check
-            try:
-                Globals.settings[idx_name_converter[idx]] = line
-                return line in Globals.resolutions
-            except Exception:
-                return False
     # fail safe - shouldn't get here
+    # With the loop structure and len check, this part might not be strictly necessary
+    # as the loop won't go to idx=3 for a 3-line file.
+    # However, to be safe and ensure the function correctly validates only 3 lines:
+    return True # If loop completes for 3 lines without returning False, it's valid.
+
+
     message = 'Save settings validation unexpectedly failed.'
     logging.critical(message)
     raise RuntimeError(message)

@@ -21,9 +21,9 @@ ARROW_TO_KEY = {
 }
 
 
-def load_application(resolution: str) -> None:
+def load_application() -> None:
     logging.info("Loading application")
-    load_textures(resolution)
+    load_textures()
     generate_subicons()
     remove_duplicate_subicons()
     # This failsafe isn't neccesary as I have built one in already.
@@ -85,10 +85,9 @@ class MouseMover():
     #     Higher confidence (e.g., 0.95) is stricter. Default is often 0.8 or 0.9.
     """No need to do error checking since the user will not have access to this class."""
 
-    def __init__(self, locations: List[int], snacks: List[int], resolution: str) -> None:
+    def __init__(self, locations: List[int], snacks: List[int]) -> None:
         self.locations = locations
         self.snacks = snacks
-        self.resolution = resolution
         self.mouse_delay = 0.15  # in seconds
 
     def choose_and_moveto_location(self) -> None:
@@ -107,9 +106,7 @@ class MouseMover():
         if coords:
             MouseMover.move_and_click(coords[0], coords[1], self.mouse_delay)
         else:
-            logging.error(f"Location image {image_to_find} not found. Falling back to coordinate-based click.")
-            x, y = MouseMover.get_location_pixels(self.resolution)[location_choice]
-            MouseMover.move_and_click(x, y, self.mouse_delay)
+            logging.error(f"Location image {image_to_find} not found. Action not performed.")
 
     def choose_snack(self) -> int:
         # USER ACTION REQUIRED: Configure your preferred snacks here.
@@ -179,20 +176,7 @@ class MouseMover():
         pyautogui.click()
 
     @staticmethod
-    def get_location_pixels(resolution: str) -> List[Tuple[int, int]]:
-        """These values are hard-coded (x,y)=(0,0)-based coordinates.
-        In order, returns the coordinates for Wizard City, Krokotopia, Marleybone, Mooshu, and Dragonspre."""
-        x_coords, y = [], 0
-        if resolution == '800x600':
-            y = 495
-            x_coords = [175, 290, 405, 520, 635]
-        elif resolution == '1280x800':
-            y = 650
-            x_coords = [345, 495, 645, 790, 945]
-        return [(x, y) for x in x_coords]
-
-    @staticmethod
-    def press_right_side_button(resolution: str, mouse_delay: float = 0.15) -> None:
+    def press_right_side_button(mouse_delay: float = 0.15) -> None:
         """Presses PLAY in select level screen,
         NEXT after game finishes,
         and FEED PET in feed screen."""
@@ -204,19 +188,10 @@ class MouseMover():
                 MouseMover.move_and_click(coords[0], coords[1], mouse_delay)
                 return
 
-        logging.error("Right side button not found via image recognition. Falling back to coordinate-based click.")
-        x, y = None, None
-        if resolution == '800x600':
-            x, y = 630, 590
-        elif resolution == '1280x800':
-            x, y = 940, 770
-        if x is not None and y is not None:
-            MouseMover.move_and_click(x, y, mouse_delay)
-        else:
-            logging.error(f"Invalid resolution ({resolution}) for fallback coordinate-based click in press_right_side_button.")
+        logging.error("Right side button not found via image recognition. Action not performed.")
 
     @staticmethod
-    def press_left_side_button(resolution: str, mouse_delay: float = 0.15) -> None:
+    def press_left_side_button(mouse_delay: float = 0.15) -> None:
         """Presses CANCEL in select level screen,
         FINISH in both feed screen and post fees screen."""
         image_names = ["cancel.png", "finish.png"]
@@ -227,16 +202,7 @@ class MouseMover():
                 MouseMover.move_and_click(coords[0], coords[1], mouse_delay)
                 return
 
-        logging.error("Left side button not found via image recognition. Falling back to coordinate-based click.")
-        x, y = None, None
-        if resolution == '800x600':
-            x, y = 185, 590
-        elif resolution == '1280x800':
-            x, y = 355, 770
-        if x is not None and y is not None:
-            MouseMover.move_and_click(x, y, mouse_delay)
-        else:
-            logging.error(f"Invalid resolution ({resolution}) for fallback coordinate-based click in press_left_side_button.")
+        logging.error("Left side button not found via image recognition. Action not performed.")
 
     def press_snack(self, snack_index: int, mouse_delay: float = 0.15) -> None:
         """Clicks on the snack given the snack number (0-4)."""
@@ -256,25 +222,7 @@ class MouseMover():
             found_slots = []
 
         if len(found_slots) <= snack_index:
-            logging.warning(f"Not enough snack slots found via image recognition for index {snack_index}. Found {len(found_slots)}. Falling back to coordinate-based click.")
-            x_coords, y_coord = None, None
-            if self.resolution == '800x600':
-                y_coord = 480
-                x_coords = [170, 285, 405, 515, 630]
-            elif self.resolution == '1280x800':
-                y_coord = 580
-                x_coords = [350, 495, 655, 790, 940]
-            else:
-                logging.error(f"Unknown resolution {self.resolution} for fallback snack click.")
-                return
-
-            if x_coords is None or y_coord is None or snack_index >= len(x_coords):
-                logging.error(f"Invalid snack_index {snack_index} or resolution for coordinate fallback.")
-                return
-
-            target_x = x_coords[snack_index]
-            # Use self.mouse_delay as it's an instance method now
-            MouseMover.move_and_click(target_x, y_coord, self.mouse_delay if mouse_delay == 0.15 else mouse_delay)
+            logging.warning(f"Not enough snack slots found via image recognition for index {snack_index}. Found {len(found_slots)}. Action not performed.")
             return
 
         # If enough slots are found by image recognition

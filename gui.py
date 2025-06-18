@@ -97,7 +97,6 @@ class ConfigureSettings:
     locations: List[int] = field(default_factory=list)
     snacks: List[int] = field(default_factory=list)
     num_games: int = 1
-    resolution: str = ''
 
     def __iter__(self):
         """Returns the data as a tuple."""
@@ -166,7 +165,6 @@ class Configure(tk.Tk):
 
         # add "configurations"
         self.configure_games(frame_middleleft)
-        self.configure_resolutions(frame_middleright)
 
         tk.Button(frame_bottomleft, text='Save', command=shared.set_save_settings, relief='solid',
                   fg=self.fg_color, highlightbackground='#e1e1e1').pack(expand=True, fill='both', padx=10, pady=10)
@@ -222,20 +220,6 @@ class Configure(tk.Tk):
         self.games = EntryWithPlaceholder(frame, placeholder="1", text=num_games_text)
         self.games.pack(padx=12, pady=0, anchor='w')
 
-    def configure_resolutions(self, frame: tk.Frame) -> None:
-        logging.debug("Configuring resolution")
-        available_resolutions = [*Globals.resolutions.keys()]
-        tk.Label(frame, text='Resolution', fg=self.fg_color, bg=self.bg_color,
-                 font=font.Font(size=9, underline=True)).pack(padx=10, pady=0, anchor='w')
-        self.resolutions = ttk.Combobox(frame, value=available_resolutions, width=16, state='readonly',
-                                        foreground=self.fg_color, background=self.bg_color)
-        self.resolutions.pack(padx=(12, 18))
-
-        # three way nested ternary
-        # use default settings or previously entered settings or previously saved settings
-        self.resolutions.current(available_resolutions.index(Globals.settings['resolution'] if self.valid_settings else \
-            (Configure.configure_settings.resolution if Configure.configure_settings is not None else available_resolutions[0])))
-
     def create_checkbox(self, master: tk.Frame, *, anchor: str, text: str, var: tk.IntVar) -> None:
         tk.Checkbutton(master, text=text, variable=var, pady=0,
                        fg=self.fg_color, bg=self.bg_color).pack(padx=10, anchor=anchor)
@@ -259,9 +243,8 @@ class Configure(tk.Tk):
                 num_games = 1
 
         # get resolution
-        resolution = self.resolutions.get()
         Configure.configure_settings = ConfigureSettings(
-            locations=locations, snacks=snacks, num_games=num_games, resolution=resolution)
+            locations=locations, snacks=snacks, num_games=num_games)
 
         try:
             self.destroy()

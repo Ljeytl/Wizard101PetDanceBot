@@ -35,8 +35,6 @@ class Properties(object):
                     setting, value = separate(line)
                     if "Scale" in setting:
                         self.screen_scale = float(value)
-                    else:
-                        screen_info = Properties.load_screen_info(value)
         for i, info in enumerate(screen_info):
             self.screen[i] = info
 
@@ -49,7 +47,6 @@ class Properties(object):
             properties.write(
                 "# Refers to the main screen which the game is located\n")
             properties.write(f"screenScale={self.screen_scale}\n")
-            properties.write("screenResolution=1280x800\n")
 
     @staticmethod
     def load_screen_info(resolution: str) -> List[int]:
